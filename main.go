@@ -199,18 +199,8 @@ func callGateway(method, path string, result interface{}, data interface{}, stat
 	appLogger.trace("request object:")
 	appLogger.trace(req)
 
-	for _, header := range opts.GatewayHeaders {
-		headerKV := strings.SplitN(header, ":", 2)
-		if len(headerKV) != 2 {
-			return fmt.Errorf("invalid header '%s' provided", header)
-		}
-
-		headerKey := strings.TrimSpace(headerKV[0])
-		headerValue := strings.TrimSpace(headerKV[1])
-
-		appLogger.debug("adding header to request:")
-		appLogger.debug(header)
-		req.Header.Add(headerKey, headerValue)
+	if err := setHeaders(req); err != nil {
+		return err
 	}
 
 	basicAuthUser := os.Getenv("BASIC_AUTH_USER")
@@ -250,6 +240,24 @@ func callGateway(method, path string, result interface{}, data interface{}, stat
 
 		appLogger.debug("parsed gateway response:")
 		appLogger.debug(result)
+	}
+
+	return nil
+}
+
+func setHeaders(req *http.Request) error {
+	for _, header := range opts.GatewayHeaders {
+		headerKV := strings.SplitN(header, ":", 2)
+		if len(headerKV) != 2 {
+			return fmt.Errorf("invalid header '%s' provided", header)
+		}
+
+		headerKey := strings.TrimSpace(headerKV[0])
+		headerValue := strings.TrimSpace(headerKV[1])
+
+		appLogger.debug("adding header to request:")
+		appLogger.debug(header)
+		req.Header.Add(headerKey, headerValue)
 	}
 
 	return nil
