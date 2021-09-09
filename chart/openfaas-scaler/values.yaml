@@ -23,7 +23,7 @@ replicaCount: 1
 
 image:
   repository: marmotherder/openfaas-scaler
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 nameOverride: ""
