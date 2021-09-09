@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openfaas-scaler.fullname" . }}
+  labels:
+    {{- include "openfaas-scaler.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "openfaas-scaler.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "openfaas-scaler.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.scalingOptions }}
+          {{- with .basicAuthSecret }}
+          {{- if .enabled }}
+          env:
+            - name: BASIC_AUTH_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secret | default "basic-auth" }}
+                  key: {{ .userKey | default "basic-auth-user" }}
+            - name: BASIC_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secret | default "basic-auth" }}
+                  key: {{ .userKey | default "basic-auth-password" }}
+          {{- end }}
+          {{- end }}
+          args:
+            {{- if eq .logLevel "debug" }}
+            - -v
+            {{- end }}
+            {{- if eq .logLevel "trace" }}
+            - -vv
+            {{- end }}
+            {{- if .dryRun }}
+            - -d
+            {{- end }}
+            {{- range .gatewayHeaders }}
+            - "--gateway_header={{ . }}"
+            {{- end }}
+            - --gateway_uri={{ .gatewayURI | default "http://gateway:8080" | quote }}
+            - --prometheus_host={{ .prometheusHost | default "prometheus" | quote }}
+            - --prometheus_port={{ .prometheusPort | default 9090 }}
+            - --polling_frequency={{ .pollingFrequency | default 30 }}
+            - --default_scale_interval={{ .defaultScaleInterval | default 320 }}
+            {{- if .ignoreLabels }}
+            - -n
+            {{- end }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

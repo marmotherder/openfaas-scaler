@@ -1,0 +1,56 @@
+scalingOptions:
+  # Supported levels are 'info', 'debug', and 'trace', in ascending verbosity ordering
+  logLevel: info
+  # Should the application run in dry run mode, and only log hypothetical changes
+  dryRun: false
+  # Full location of the openfaas gateway endpoint
+  gatewayURI: http://gateway:8080
+  # Additional headers to add for calling the gateway. Header keys and values should be separated with a colon ':', eg. x-example: value
+  gatewayHeaders: []
+  prometheusHost: prometheus
+  prometheusPort: 9090
+  # Polling frequency, in seconds
+  pollingFrequency: 30
+  # The default interval, in seconds, for how long between scaling events. Ie, if a function is idle for this period, it will be scaled to zero
+  defaultScaleInterval: 320
+  # Should openfaas labels be ignored when running. Ie, scaling will run without respecting function specific rules/labels
+  ignoreLabels: false
+  # Should basic auth information be retrieved via a secret in the same namespace?
+  basicAuthSecret:
+    enabled: false
+
+replicaCount: 1
+
+image:
+  repository: marmotherder/openfaas-scaler
+  pullPolicy: Always
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

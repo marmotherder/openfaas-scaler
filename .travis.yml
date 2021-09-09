@@ -1,0 +1,27 @@
+dist: xenial
+
+services:
+  - docker
+
+language: go
+
+env:
+  - GO111MODULE=on CGO_ENABLED=0 GOOS=linux
+
+go:
+  - 1.17.x
+
+git:
+  depth: 1
+
+install: skip
+
+script:
+  - go test .
+  - docker build -t marmotherder/openfaas-scaler:latest .
+
+deploy:
+  provider: script
+  script: bash docker_push.sh
+  on:
+    branch: main
