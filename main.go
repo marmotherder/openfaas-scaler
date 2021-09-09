@@ -133,21 +133,7 @@ func listIdleFunctions(functions []providerTypes.FunctionStatus) (idleFunctions 
 			defer wg.Done()
 			fnName := fmt.Sprintf("%s.%s", function.Name, function.Namespace)
 
-			canZero := func() bool {
-				if opts.IgnoreLabels {
-					return true
-				}
-				for key, value := range *function.Labels {
-					if key == "com.openfaas.scale.zero" && value == "true" {
-						appLogger.debug(fmt.Sprintf("found scale to zero header for function %s", fnName))
-						return true
-					}
-				}
-				appLogger.debug(fmt.Sprintf("no scale to zero header found for function %s", fnName))
-				return false
-			}
-
-			if !canZero() {
+			if !canZero(fnName, *function.Labels) {
 				return
 			}
 
@@ -169,24 +155,7 @@ func listIdleFunctions(functions []providerTypes.FunctionStatus) (idleFunctions 
 				return
 			}
 
-			hasActiveResult := func() bool {
-				for _, result := range resp.Data.Result {
-					if len(result.Value) < 2 {
-						continue
-					}
-					resultValue, ok := result.Value[1].(string)
-					if !ok {
-						continue
-					}
-
-					if resultValue != "0" && resultValue != "0.0" {
-						return true
-					}
-				}
-				return false
-			}
-
-			if !hasActiveResult() {
+			if !hasActiveResult(resp) {
 				c <- function
 			}
 		}(function)
@@ -262,16 +231,7 @@ func callGateway(method, path string, result interface{}, data interface{}, stat
 	appLogger.trace("api response:")
 	appLogger.trace(resp)
 
-	validStatus := func() bool {
-		for _, statusCode := range statusCodes {
-			if resp.StatusCode == statusCode {
-				return true
-			}
-		}
-		return false
-	}
-
-	if !validStatus() {
+	if !validStatus(resp.StatusCode, statusCodes...) {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			appLogger.debug("failed to read body response from gateway")
@@ -293,6 +253,46 @@ func callGateway(method, path string, result interface{}, data interface{}, stat
 	}
 
 	return nil
+}
+
+func canZero(fnName string, labels map[string]string) bool {
+	if opts.IgnoreLabels {
+		return true
+	}
+	for key, value := range labels {
+		if key == "com.openfaas.scale.zero" && value == "true" {
+			appLogger.debug(fmt.Sprintf("found scale to zero header for function %s", fnName))
+			return true
+		}
+	}
+	appLogger.debug(fmt.Sprintf("no scale to zero header found for function %s", fnName))
+	return false
+}
+
+func hasActiveResult(resp *metrics.VectorQueryResponse) bool {
+	for _, result := range resp.Data.Result {
+		if len(result.Value) < 2 {
+			continue
+		}
+		resultValue, ok := result.Value[1].(string)
+		if !ok {
+			continue
+		}
+
+		if resultValue != "0" && resultValue != "0.0" {
+			return true
+		}
+	}
+	return false
+}
+
+func validStatus(statusCode int, validStatusCodes ...int) bool {
+	for _, validStatusCode := range validStatusCodes {
+		if statusCode == validStatusCode {
+			return true
+		}
+	}
+	return false
 }
 
 type logger interface {
