@@ -38,7 +38,7 @@ var client = http.DefaultClient
 
 func main() {
 	parseArgs()
-	appLogger := defaultLogger{
+	appLogger = defaultLogger{
 		level: len(opts.Verbose),
 	}
 
