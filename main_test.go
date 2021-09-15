@@ -40,7 +40,7 @@ func TestPollFunctions(t *testing.T) {
 					Namespace: "mock",
 					Labels:    &map[string]string{"com.openfaas.scale.zero": "true"},
 					Replicas:  1,
-					CreatedAt: time.Now().Add(time.Duration(10 * time.Minute)),
+					CreatedAt: time.Now().Add(-time.Duration(10 * time.Minute)),
 				},
 			}
 			respData, err := json.Marshal(resp)
