@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	providerTypes "github.com/openfaas/faas-provider/types"
 	"github.com/stretchr/testify/assert"
@@ -39,6 +40,7 @@ func TestPollFunctions(t *testing.T) {
 					Namespace: "mock",
 					Labels:    &map[string]string{"com.openfaas.scale.zero": "true"},
 					Replicas:  1,
+					CreatedAt: time.Now().Add(time.Duration(10 * time.Minute)),
 				},
 			}
 			respData, err := json.Marshal(resp)
@@ -89,7 +91,7 @@ func TestPollFunctions(t *testing.T) {
 		return false
 	}
 
-	assert.True(t, hasExpectedOutput(), "output is missing expexted scaling event")
+	assert.True(t, hasExpectedOutput(), "output is missing expected scaling event")
 }
 
 type VectorQueryResponse struct {
