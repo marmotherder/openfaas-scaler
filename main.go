@@ -137,6 +137,10 @@ func listIdleFunctions(functions []providerTypes.FunctionStatus) (idleFunctions 
 				return
 			}
 
+			if function.CreatedAt.Before(time.Now().Add(time.Duration(opts.DefaultScaleInterval) * time.Second)) {
+				return
+			}
+
 			queryReq := url.QueryEscape(fmt.Sprintf(`sum(rate(gateway_function_invocation_total{function_name="%s", code=~".*"}[%s])) by (code, function_name)`, fnName, duration))
 			appLogger.trace("calling prometheus with query:")
 			appLogger.trace(queryReq)
