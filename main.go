@@ -137,7 +137,7 @@ func listIdleFunctions(functions []providerTypes.FunctionStatus) (idleFunctions 
 				return
 			}
 
-			if function.CreatedAt.Before(time.Now().Add(time.Duration(opts.DefaultScaleInterval) * time.Second)) {
+			if function.CreatedAt.Add(time.Duration(opts.DefaultScaleInterval) * time.Second).After(time.Now()) {
 				return
 			}
 
