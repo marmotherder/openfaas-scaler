@@ -27,8 +27,8 @@ var opts struct {
 	GatewayHeaders       []string `short:"a" long:"gateway_header" description:"Additional headers to use when calling the gateway, eg. authentication"`
 	PrometheusHost       string   `short:"p" long:"prometheus_host" description:"Full URI to the openfaas gateway" default:"prometheus"`
 	PrometheusPort       int      `short:"o" long:"prometheus_port" description:"Full URI to the openfaas gateway" default:"9090"`
-	PollingFrequency     int      `short:"f" long:"polling_frequency" description:"Polling frequency against scaling in seconds" default:"30"`
-	DefaultScaleInterval int      `short:"i" long:"default_scale_interval" description:"Default interval period between scaling events in seconds" default:"320"`
+	PollingFrequency     string   `short:"f" long:"polling_frequency" description:"Polling frequency against scaling" default:"30s"`
+	DefaultScaleInterval string   `short:"i" long:"default_scale_interval" description:"Default interval period between scaling events" default:"320s"`
 	IgnoreLabels         bool     `short:"n" long:"ignore_labels" description:"Ignore scaling labels and run for every function found"`
 }
 
@@ -46,13 +46,19 @@ func main() {
 	appLogger.info("Running first polling")
 	pollFunctions()
 
-	appLogger.info(fmt.Sprintf("Starting polling loop, running every %d seconds", opts.PollingFrequency))
+	appLogger.info(fmt.Sprintf("Starting polling loop, running every %s", opts.PollingFrequency))
 
-	ticker := time.NewTicker(time.Duration(opts.PollingFrequency) * time.Second)
+	pollingFrequencyDuration, err := time.ParseDuration(opts.PollingFrequency)
+	if err != nil {
+		appLogger.info(fmt.Sprintf("the provided polling frequency: %s was invalid", opts.PollingFrequency))
+		panic(err.Error())
+	}
+
+	ticker := time.NewTicker(pollingFrequencyDuration)
 	for range ticker.C {
 		ticker.Stop()
 		pollFunctions()
-		ticker.Reset(time.Duration(opts.PollingFrequency) * time.Second)
+		ticker.Reset(pollingFrequencyDuration)
 	}
 }
 
@@ -122,8 +128,8 @@ func scaleFunction(fnName string, replicas uint64) error {
 func listIdleFunctions(functions []providerTypes.FunctionStatus) (idleFunctions []providerTypes.FunctionStatus) {
 	query := metrics.NewPrometheusQuery(opts.PrometheusHost, opts.PrometheusPort, client)
 	appLogger.debug(fmt.Sprintf("creating prometheus client with host: %s and port: %d", opts.PrometheusHost, opts.PrometheusPort))
-	duration := fmt.Sprintf("%ds", opts.DefaultScaleInterval)
-	appLogger.debug(fmt.Sprintf("idle duration set to %s", duration))
+	duration := opts.DefaultScaleInterval
+	appLogger.debug(fmt.Sprintf("default idle duration set to %s", duration))
 
 	c := make(chan providerTypes.FunctionStatus)
 	wg := sync.WaitGroup{}
@@ -137,7 +143,17 @@ func listIdleFunctions(functions []providerTypes.FunctionStatus) (idleFunctions 
 				return
 			}
 
-			if function.CreatedAt.Add(time.Duration(opts.DefaultScaleInterval) * time.Second).After(time.Now()) {
+			if customIntervalValue := customInterval(fnName, *function.Labels); customIntervalValue != nil {
+				duration = *customIntervalValue
+			}
+
+			parsedDuration, err := time.ParseDuration(duration)
+			if err != nil {
+				appLogger.info(fmt.Sprintf("the scaling value %s given for the function %s was not parsable", duration, fnName))
+				appLogger.info(err.Error())
+			}
+
+			if function.CreatedAt.Add(parsedDuration).After(time.Now()) {
 				return
 			}
 
@@ -273,12 +289,26 @@ func canZero(fnName string, labels map[string]string) bool {
 	}
 	for key, value := range labels {
 		if key == "com.openfaas.scale.zero" && value == "true" {
-			appLogger.debug(fmt.Sprintf("found scale to zero header for function %s", fnName))
+			appLogger.debug(fmt.Sprintf("found scale to zero label for function %s", fnName))
 			return true
 		}
 	}
-	appLogger.debug(fmt.Sprintf("no scale to zero header found for function %s", fnName))
+	appLogger.debug(fmt.Sprintf("no scale to zero label found for function %s", fnName))
 	return false
+}
+
+func customInterval(fnName string, labels map[string]string) *string {
+	if opts.IgnoreLabels {
+		return nil
+	}
+	for key, value := range labels {
+		if key == "com.openfaas.scale.custom.interval" {
+			appLogger.debug(fmt.Sprintf("found custom scaling interval label for function %s", fnName))
+			return &value
+		}
+	}
+	appLogger.debug(fmt.Sprintf("no custom scaling interval label found for function %s", fnName))
+	return nil
 }
 
 func hasActiveResult(resp *metrics.VectorQueryResponse) bool {

@@ -9,10 +9,10 @@ scalingOptions:
   gatewayHeaders: []
   prometheusHost: prometheus
   prometheusPort: 9090
-  # Polling frequency, in seconds
-  pollingFrequency: 30
-  # The default interval, in seconds, for how long between scaling events. Ie, if a function is idle for this period, it will be scaled to zero
-  defaultScaleInterval: 320
+  # Polling frequency
+  pollingFrequency: 30s
+  # The default interval for how long between scaling events. Ie, if a function is idle for this period, it will be scaled to zero
+  defaultScaleInterval: 320s
   # Should openfaas labels be ignored when running. Ie, scaling will run without respecting function specific rules/labels
   ignoreLabels: false
   # Should basic auth information be retrieved via a secret in the same namespace?
