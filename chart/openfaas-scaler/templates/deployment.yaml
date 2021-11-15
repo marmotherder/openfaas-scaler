@@ -64,8 +64,8 @@ spec:
             - --gateway_uri={{ .gatewayURI | default "http://gateway:8080" | quote }}
             - --prometheus_host={{ .prometheusHost | default "prometheus" | quote }}
             - --prometheus_port={{ .prometheusPort | default 9090 }}
-            - --polling_frequency={{ .pollingFrequency | default 30s }}
-            - --default_scale_interval={{ .defaultScaleInterval | default 320s }}
+            - --polling_frequency={{ .pollingFrequency | default "30s" | quote }}
+            - --default_scale_interval={{ .defaultScaleInterval | default "320s" | quote }}
             {{- if .ignoreLabels }}
             - -n
             {{- end }}
