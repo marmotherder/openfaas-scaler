@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  openfaas-scaler:
+  - apiVersion: v2
+    appVersion: 0.1.1
+    created: "2021-09-09T11:53:51.2555342+01:00"
+    description: An openfaas scaling tool
+    digest: 50a0d9c5b0aeff43c445a9ab067035fe5a051296c8a4342850f36c85154e5679
+    name: openfaas-scaler
+    urls:
+    - https://github.com/marmotherder/openfaas-scaler/raw/0.1.1/chart/openfaas-scaler-0.1.1.tgz
+    version: 0.1.1
+generated: "2021-09-09T11:53:51.2543729+01:00"
