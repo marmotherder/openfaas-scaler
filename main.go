@@ -143,6 +143,10 @@ func listIdleFunctions(functions []providerTypes.FunctionStatus) (idleFunctions 
 				return
 			}
 
+			if function.AvailableReplicas < function.Replicas {
+				return
+			}
+
 			if customIntervalValue := customInterval(fnName, *function.Labels); customIntervalValue != nil {
 				duration = *customIntervalValue
 			}
