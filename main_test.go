@@ -36,11 +36,12 @@ func TestPollFunctions(t *testing.T) {
 		if req.URL.Path == "/system/functions" {
 			resp := []providerTypes.FunctionStatus{
 				{
-					Name:      "mock",
-					Namespace: "mock",
-					Labels:    &map[string]string{"com.openfaas.scale.zero": "true"},
-					Replicas:  1,
-					CreatedAt: time.Now().Add(-time.Duration(10 * time.Minute)),
+					Name:              "mock",
+					Namespace:         "mock",
+					Labels:            &map[string]string{"com.openfaas.scale.zero": "true"},
+					Replicas:          1,
+					AvailableReplicas: 1,
+					CreatedAt:         time.Now().Add(-time.Duration(10 * time.Minute)),
 				},
 			}
 			respData, err := json.Marshal(resp)
